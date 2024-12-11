@@ -1,21 +1,20 @@
 import "./App.css";
 import { TonConnectButton } from "@tonconnect/ui-react";
-// import { useMainContract } from "./hooks/useMainContract";
-// import { useTonConnect } from "./hooks/useTonConnect";
+import { useMainContract } from "./hooks/useMainContract";
+import { useTonConnect } from "./hooks/useTonConnect";
+import { fromNano } from "ton-core";
 
 function App() {
-    // const {
-    //     contract_address,
-    //     counter_value,
-    //     recent_sender,
-    //     owner_address,
-    //     contract_balance,
-    //     sendIncrement,
-    //     sendDeposit,
-	// 	sendWithdrawalRequest,
-    // } = useMainContract();
+    const {
+        contract_address,
+        counter_value,
+        contract_balance,
+        sendIncrement,
+        sendDeposit,
+		sendWithdrawalRequest,
+    } = useMainContract();
 
-    // const { connected } = useTonConnect();
+    const { connected } = useTonConnect();
 
     return (
         <div>
@@ -25,22 +24,22 @@ function App() {
             <div>
                 <div className="Card">
                     <b>Our contract Address</b>
-                    {/* <div className="Hint">
+                    <div className="Hint">
                         {contract_address?.slice(0, 30) + "..."}
                     </div>
                     <b>Our contract Balance</b>
                     {contract_balance && (
                         <div className="Hint">{fromNano(contract_balance)}</div>
-                    )} */}
+                    )}
                 </div>
 
-                {/* <div className="Card">
+                <div className="Card">
                     <b>Counter Value</b>
                     <div>{counter_value ?? "Loading..."}</div>
-                </div> */}
+                </div>
             </div>
 
-            {/* {connected && (
+            {connected && (
                 <a onClick={() => sendIncrement()}> Increment by 5</a>
             )}
 
@@ -50,7 +49,7 @@ function App() {
 
 			<br />
 
-			{connected && <a onClick={() => sendWithdrawalRequest()}>Request 0.7 TON withdrawal</a>} */}
+			{connected && <a onClick={() => sendWithdrawalRequest()}>Request 0.7 TON withdrawal</a>}
         </div>
     );
 }
