@@ -9,8 +9,6 @@ function App() {
         contract_address,
         counter_value,
         contract_balance,
-        recent_sender,
-        owner_address,
         sendIncrement,
         sendDeposit,
 		sendWithdrawalRequest,
