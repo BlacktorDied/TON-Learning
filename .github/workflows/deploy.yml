@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy First Contract Frontend
 
 on:
   push:
@@ -20,16 +20,20 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd first_contract_frontend
+          npm ci
 
       - name: Build project
-        run: npm run build
+        run: |
+          cd first_contract_frontend
+          npm run build
 
       - name: Upload production-ready build files
         uses: actions/upload-artifact@v3
         with:
           name: production-files
-          path: ./dist
+          path: first_contract_frontend/dist
 
   deploy:
     name: Deploy
