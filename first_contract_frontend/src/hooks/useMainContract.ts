@@ -32,6 +32,7 @@ export function useMainContract() {
 
   useEffect(() => {
     async function getValue() {
+      console.log(mainContract);
       if (!mainContract) return;
       setContractData(null);
       const val = await mainContract.getData();
