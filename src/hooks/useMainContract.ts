@@ -4,7 +4,7 @@ import { useTonClient } from "./useTonClient";
 import { useAsyncInitialize } from "./useAsyncInitialize";
 import { Address, OpenedContract } from "ton-core";
 import { toNano } from "ton-core";
-import { useTonConnect } from "./useTonConnect";
+import { useTonConnect } from "./useTonconnect";
 
 export function useMainContract() {
   const client = useTonClient();
@@ -29,6 +29,8 @@ export function useMainContract() {
     return client.open(contract) as OpenedContract<MainContract>;
   }, [client]);
 
+  console.log(mainContract?.address.toString());
+
   useEffect(() => {
     async function getValue() {
       if (!mainContract) return;
@@ -44,6 +46,7 @@ export function useMainContract() {
       await sleep(5000); // sleep 5 seconds and poll value again
       getValue();
     }
+    
     getValue();
   }, [mainContract]);
 
