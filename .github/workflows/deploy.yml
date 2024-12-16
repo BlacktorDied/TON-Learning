@@ -1,4 +1,4 @@
-name: Deploy First Contract Frontend
+name: Deploy First Contract Frontend and TMA Exercise
 
 on:
   push:
@@ -19,34 +19,57 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
+      - name: Install dependencies for first_contract_frontend
         run: |
           cd first_contract_frontend
           npm ci
 
-      - name: Build project
+      - name: Build project first_contract_frontend
         run: |
           cd first_contract_frontend
           npm run build
+
+      - name: Move first_contract_frontend build to dist
+        run: |
+          mkdir -p dist/first_contract_frontend
+          mv first_contract_frontend/dist/* dist/first_contract_frontend/
+
+      - name: Install dependencies for TMA_exercise
+        run: |
+          cd TMA_exercise
+          npm ci
+
+      - name: Build project TMA_exercise
+        run: |
+          cd TMA_exercise
+          npm run build
+
+      - name: Move TMA_exercise build to dist
+        run: |
+          mkdir -p dist/TMA_exercise
+          mv TMA_exercise/docs/* dist/TMA_exercise/
 
       - name: Upload production-ready build files
         uses: actions/upload-artifact@v3
         with:
           name: production-files
-          path: first_contract_frontend/dist
+          path: dist
 
   deploy:
     name: Deploy
-    needs: build
     runs-on: ubuntu-latest
+    needs: build
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Download artifact
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
           name: production-files
-          path: ./dist
+          path: dist
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
