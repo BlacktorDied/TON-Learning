@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies for TMA_exercise
         run: |
           cd TMA_exercise
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Build project TMA_exercise
         run: |
