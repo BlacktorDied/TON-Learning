@@ -1,78 +1,80 @@
 name: Deploy First Contract Frontend and TMA Exercise
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
+    build:
+        name: Build
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v2
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
+            - name: Setup Node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18
 
-      - name: Install dependencies for first_contract_frontend
-        run: |
-          cd first_contract_frontend
-          npm ci
+            - name: Install dependencies for first_contract_frontend
+              run: |
+                  cd first_contract_frontend
+                  npm ci
 
-      - name: Build project first_contract_frontend
-        run: |
-          cd first_contract_frontend
-          npm run build
+            - name: Build project first_contract_frontend
+              run: |
+                  cd first_contract_frontend
+                  npm run build
 
-      - name: Move first_contract_frontend build to dist
-        run: |
-          mkdir -p dist/first_contract_frontend
-          mv first_contract_frontend/dist/* dist/first_contract_frontend/
+            - name: Move first_contract_frontend build to dist
+              run: |
+                  mkdir -p dist/first_contract_frontend
+                  mv first_contract_frontend/dist/* dist/first_contract_frontend/
 
-      - name: Install dependencies for TMA_exercise
-        run: |
-          cd TMA_exercise
-          npm ci --legacy-peer-deps
+            - name: Install dependencies for TMA_exercise
+              run: |
+                  cd TMA_exercise
+                  npm ci --legacy-peer-deps
 
-      - name: Build project TMA_exercise
-        run: |
-          cd TMA_exercise
-          npm run build
+            - name: Build project TMA_exercise
+              run: |
+                  cd TMA_exercise
+                  npm run build
 
-      - name: Move TMA_exercise build to dist
-        run: |
-          mkdir -p dist/TMA_exercise
-          mv TMA_exercise/docs/* dist/TMA_exercise/
+            - name: Move TMA_exercise build to dist
+              run: |
+                  mkdir -p dist/TMA_exercise
+                  mv TMA_exercise/docs/* dist/TMA_exercise/
+              env:
+                  VITE_TESTNET_API_KEY: ${{ secrets.TESTNET_API_KEY }}
 
-      - name: Upload production-ready build files
-        uses: actions/upload-artifact@v3
-        with:
-          name: production-files
-          path: dist
+            - name: Upload production-ready build files
+              uses: actions/upload-artifact@v4
+              with:
+                  name: production-files
+                  path: dist
 
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        needs: build
+        if: github.ref == 'refs/heads/main'
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v2
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: production-files
-          path: dist
+            - name: Download build artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: production-files
+                  path: dist
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+            - name: Deploy to GitHub Pages
+              uses: peaceiris/actions-gh-pages@v3
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: ./dist

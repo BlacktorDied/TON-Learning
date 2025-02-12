@@ -5,29 +5,30 @@ import {
     useTonConnectUI,
     useTonWallet,
 } from "@tonconnect/ui-react";
-import { TonClient } from "@ton/ton";
-import { Address, toNano, fromNano, beginCell } from "@ton/core";
+import { beginCell, toNano, fromNano, Address, TonClient } from "@ton/ton";
+import TonWeb from "tonweb";
 
 export default function App() {
-    const userFriendlyAddress = useTonAddress(); // For userFriendlyAddress
-    const wallet = useTonWallet(); // For Balance
-    const [tonConnectUI] = useTonConnectUI(); // For Connect & Disconnect
-    // const jettonContractAddress = ""; //
-    // const jettonContractABI = []; //
+    const userFriendlyAddress = useTonAddress();                    // For userFriendlyAddress
+    // const rawAddress = useTonAddress(false);                     // For rawAddress
+    const wallet = useTonWallet();                                  // For Balance
+    const [tonConnectUI] = useTonConnectUI();                       // For Connect & Disconnect
 
-    const [balance, setBalance] = useState<string>(); // get & set Balance
-    const [masterAddress, setMasterAddress] = useState(""); // get & set MasterAddress (For Jetton)
-    const [recipientAddress, setRecipientAddress] = useState(""); // get & set Address    (For Transaction)
-    const [inputAmount, setInputAmount] = useState<string>("0"); // get & set Amount     (For Transaction)
+    const [balance, setBalance] = useState<string>();               // get & set Balance
+    const [formType, setFormType] = useState("TON");                // get & set FormType (For Form)
+    // const [comment, setComment] = useState("");                     // get & set Comment (For Transaction)
+    const [masterAddress, setMasterAddress] = useState("");         // get & set MasterAddress (For Jetton)
+    const [recipientAddress, setRecipientAddress] = useState("");   // get & set Address (For Transaction)
+    const [inputAmount, setInputAmount] = useState<string>("0");    // get & set Amount (For Transaction)
     const amount = useMemo<number>(
         () => parseFloat(inputAmount),
         [inputAmount],
     );
-    const [formType, setFormType] = useState("TON"); // get & set FormType   (For Form)
 
     // Initialize TonClient
     const client = new TonClient({
         endpoint: "https://testnet.toncenter.com/api/v2/jsonRPC",
+        apiKey: import.meta.env.VITE_TESTNET_API_KEY, // Enter you own Testnet API Key
     });
 
     // Get Balance useEffect
@@ -48,6 +49,11 @@ export default function App() {
         uiPreferences: {
             theme: "SYSTEM",
         },
+
+        actionsConfiguration: {
+            modals: ['before', 'success', 'error'],
+            notifications: ['before', 'success', 'error']
+        }
     };
 
     // Send TON Transaction
@@ -68,78 +74,69 @@ export default function App() {
         };
 
         try {
-            const result = await tonConnectUI.sendTransaction(transaction, {
-                modals: ["before", "success", "error"],
-                notifications: ["before", "success", "error"],
-            });
-            console.log(result);
+            tonConnectUI.sendTransaction(transaction);
         } catch (e) {
             console.error(e);
         }
     }
 
     // Send Jetton Transaction
-    async function sendJettonTransaction() {
-        if (isNaN(amount) || amount <= 0) {
-            console.error("Invalid Jetton amount");
-            return;
-        }
+    const tonweb = new TonWeb(
+        new TonWeb.HttpProvider(
+            "https://testnet.toncenter.com/api/v2/jsonRPC",
+            { apiKey: import.meta.env.VITE_TESTNET_API_KEY }, // Enter you own Testnet API Key
+        ),
+    );
 
-        try {
-            // Create the payload for the Jetton transfer
-            const payload = beginCell()
-                .storeUint(0xf8a7ea5, 32) // Jetton transfer method ID
-                .storeUint(0, 64) // Query ID (optional, can be 0)
-                .storeCoins(toNano(amount)) // Jetton amount
-                .storeAddress(Address.parse(recipientAddress)) // Recipient's address
-                .storeAddress(null) // Forward payload address (null if not used)
-                .storeUint(0, 1) // No custom payload
-                .endCell();
+    async function getJettonWalletAddress() {
+        const jettonMinter = new TonWeb.token.jetton.JettonMinter(
+            tonweb.provider,
+            {
+                address: masterAddress,
+                adminAddress: new TonWeb.utils.Address(masterAddress),
+                jettonContentUri: "",
+                jettonWalletCodeHex: "",
+            },
+        );
 
-            // Construct the transaction object
-            const transaction = {
-                validUntil: Date.now() + 5 * 60 * 1000, // Transaction valid for 5 minutes
-                messages: [
-                    {
-                        address: masterAddress, // Sender's Jetton wallet address
-                        amount: toNano("0.05").toString(), // Small TON fee for the transaction
-                        payload: payload.toBoc().toString("base64"), // Encoded payload
-                    },
-                ],
-            };
+        const jettonWalletAddress = await jettonMinter.getJettonWalletAddress(
+            new TonWeb.utils.Address(userFriendlyAddress),
+        );
 
-            // Send the transaction
-            const result = await tonConnectUI.sendTransaction(transaction, {
-                modals: ["before", "success", "error"],
-                notifications: ["before", "success", "error"],
-            });
-
-            console.log("Jetton transaction result:", result);
-        } catch (e) {
-            console.error("Jetton transaction failed:", e);
-        }
+        return jettonWalletAddress;
     }
 
-    // Create a contract instance using the address from tonconnect-ui
-    // const contract =
-    //     wallet && wallet.account.publicKey
-    //         ? client.open(
-    //               WalletContractV4.create({
-    //                   workchain: 0,
-    //                   publicKey: Buffer.from(wallet.account.publicKey, "hex"),
-    //               })
-    //           )
-    //         : null;
-    // useEffect(() => {
-    //     const getBalance = async () => {
-    //         if (contract) {
-    //             let balance: bigint = await contract.getBalance();
-    //             setBalance(fromNano(balance).toString());
-    //         }
-    //     };
-    //     const interval = setInterval(getBalance, 5000);
-    //     return () => clearInterval(interval);
-    // }, [contract]);
+    async function sendJettonTransaction() {
+        const body = beginCell()
+            .storeUint(0xf8a7ea5, 32)                           // jetton transfer op code
+            .storeUint(0, 64)                                   // query_id:uint64
+            .storeCoins(toNano(amount.toString()))              // amount:(VarUInteger 16) -  Jetton amount for transfer (decimals = 6 - USDT, 9 - default). Function toNano use decimals = 9 (remember it)
+            .storeAddress(Address.parse(recipientAddress))      // destination:MsgAddress
+            .storeAddress(Address.parse(userFriendlyAddress))   // response_destination:MsgAddress
+            .storeUint(0, 1)                                    // custom_payload:(Maybe ^Cell)
+            .storeCoins(toNano("0.05"))                         // forward_ton_amount:(VarUInteger 16) - if >0, will send notification message
+            .storeUint(0, 1)                                    // forward_payload:(Either Cell ^Cell)
+            .endCell();
+
+        console.log(body);
+
+        const transaction = {
+            validUntil: Date.now() + 5 * 60 * 1000,
+            messages: [
+                {
+                    address: (await getJettonWalletAddress()).toString(),   // sender jetton wallet
+                    amount: toNano("0.1").toString(),                       // for commission fees, excess will be returned
+                    payload: body.toBoc().toString("base64"),               // payload with jetton transfer body
+                },
+            ],
+        };
+
+        try {
+            tonConnectUI.sendTransaction(transaction);
+        } catch (e) {
+            console.error(e);
+        }
+    }
 
     return (
         <>
@@ -164,17 +161,30 @@ export default function App() {
             {userFriendlyAddress && (
                 <>
                     <p className="address">
-                        <b>User-friendly address:</b>{" "}
+                        <b>Your Address:</b>{" "}
                         <span
                             onClick={() => {
                                 navigator.clipboard.writeText(
                                     userFriendlyAddress,
+                                );
+                                document.head.insertAdjacentHTML(
+                                    "beforeend",
+                                    "<style>.address::after { display: block; }</style>",
                                 );
                             }}
                         >
                             {userFriendlyAddress.slice(0, 4) +
                                 "..." +
                                 userFriendlyAddress.slice(-4)}
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="copyIcon"
+                            >
+                                <path d="M6 11c0-2.8 0-4.2.9-5.1C7.8 5 9.2 5 12 5h3c2.8 0 4.2 0 5.1.9.9.9.9 2.3.9 5.1v5c0 2.8 0 4.2-.9 5.1-.9.9-2.3.9-5.1.9h-3c-2.8 0-4.2 0-5.1-.9C6 20.2 6 18.8 6 16v-5Z" />
+                                <path d="M6 19a3 3 0 0 1-3-3v-6c0-3.8 0-5.7 1.2-6.8C5.3 2 7.2 2 11 2h4a3 3 0 0 1 3 3" />
+                            </svg>
                         </span>
                     </p>
 
@@ -234,15 +244,18 @@ export default function App() {
                     ) : (
                         <form className="send-transaction">
                             <label htmlFor="masterAddress">
-                                Jetton Master Address:
-                                <input
-                                    type="text"
-                                    id="masterAddress"
+                                Jetton Minter (Jetton Master):
+                                <select
                                     value={masterAddress}
                                     onChange={(e) =>
                                         setMasterAddress(e.target.value)
                                     }
-                                />
+                                >
+                                    <option value="">Select Jetton</option>
+                                    <option value="kQBngUvvulIE8dMcA468fWImjMdrt_B-TVUwQ_5itds7sIfW">
+                                        TMAE
+                                    </option>
+                                </select>
                             </label>
 
                             <label htmlFor="recipientAddress">

@@ -11,6 +11,8 @@
         "format:fix": "prettier --write ."
     },
     "dependencies": {
+        "@ton-api/client": "^0.3.1",
+        "@ton-api/ton-adapter": "^0.3.0",
         "@ton/core": "^0.59.1",
         "@ton/crypto": "^3.3.0",
         "@ton/ton": "^15.1.0",
@@ -19,6 +21,7 @@
         "@tonconnect/ui-react": "^2.0.9",
         "@twa-dev/sdk": "^8.0.1",
         "@vitejs/plugin-basic-ssl": "^1.2.0",
+        "dotenv": "^16.4.7",
         "prettier": "^3.4.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
